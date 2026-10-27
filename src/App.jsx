@@ -101,14 +101,14 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // 2. STATE AUTHENTICATION & PROFIL PENGGUNA
+  // 2. STATE AUTHENTICATION & PROFIL PENGGUNA (Tanpa dummy foto sebelum di-upload)
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [profileAvatar, setProfileAvatar] = useState('https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80');
+  const [profileAvatar, setProfileAvatar] = useState(null); // Default null (tidak ada dummy foto)
   const [loginError, setLoginError] = useState('');
 
-  // 3. STATE FEED NEWS (Dengan localStorage Persistence agar tidak hilang saat di-refresh)
+  // 3. STATE FEED NEWS (Dengan localStorage Persistence)
   const [feed, setFeed] = useState(() => {
     try {
       const savedFeed = localStorage.getItem('city_news_feed');
@@ -136,7 +136,7 @@ export default function App() {
   const [newPostText, setNewPostText] = useState('');
   const [newPostImagePreview, setNewPostImagePreview] = useState('');
 
-  // Fungsi helper menampilkan toast info
+  // Helper menampilkan notifikasi toast
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(''), 3000);
@@ -217,7 +217,7 @@ export default function App() {
     }
   };
 
-  // Submit Komentar Baru ke state
+  // Submit Komentar Baru
   const handleAddComment = (postId) => {
     if (!commentInput.trim()) return;
 
@@ -262,10 +262,12 @@ export default function App() {
       return;
     }
 
+    const fallbackAvatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80';
+
     const newPost = {
       id: Date.now(),
       author: username || 'Stephanie Halim',
-      avatar: profileAvatar,
+      avatar: profileAvatar || fallbackAvatar,
       thumb: newPostImagePreview || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=300&q=80',
       text: newPostText.trim(),
       views: 1,
@@ -282,7 +284,7 @@ export default function App() {
   };
 
   // ==========================================
-  // VIEW 1: SCREEN LOGIN (LENGKAP DENGAN FITUR UPLOAD PROFIL)
+  // VIEW 1: SCREEN LOGIN (TANPA DUMMY FOTO PROFILE)
   // ==========================================
   if (!isLoggedIn) {
     return (
@@ -291,18 +293,15 @@ export default function App() {
         <div className="status-bar">
           <span>{currentTime}</span>
           <div className="status-icons">
-            {/* 2D Signal Icon */}
             <svg width="14" height="11" viewBox="0 0 14 11" fill="currentColor">
               <rect x="0" y="8" width="2" height="3" rx="0.5"/>
               <rect x="4" y="5.5" width="2" height="5.5" rx="0.5"/>
               <rect x="8" y="3" width="2" height="8" rx="0.5"/>
               <rect x="12" y="0" width="2" height="11" rx="0.5"/>
             </svg>
-            {/* 2D Wifi Icon */}
             <svg width="14" height="11" viewBox="0 0 16 12" fill="currentColor">
               <path d="M8 9.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM4.1 6.8a5.5 5.5 0 0 1 7.8 0 .8.8 0 0 1-1.1 1.1 4 4 0 0 0-5.6 0 .8.8 0 0 1-1.1-1.1zm-3-3a9.8 9.8 0 0 1 13.8 0 .8.8 0 0 1-1.1 1.1 8.3 8.3 0 0 0-11.6 0 .8.8 0 0 1-1.1-1.1z"/>
             </svg>
-            {/* 2D Battery Icon */}
             <svg width="16" height="11" viewBox="0 0 20 12" fill="currentColor">
               <rect x="1" y="1" width="16" height="10" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5"/>
               <rect x="3" y="3" width="10" height="6" rx="1"/>
@@ -314,10 +313,19 @@ export default function App() {
         {/* Login Form Container */}
         <div className="login-screen">
           <div className="login-brand">
-            {/* Upload Foto Profil Interaktif */}
+            {/* Upload Foto Profil (Placeholder Bersih Tanpa Dummy Foto) */}
             <div className="login-avatar-upload-wrap">
-              <img src={profileAvatar} alt="Foto Profil" className="login-avatar-preview" />
-              <label className="login-avatar-badge" title="Ganti Foto Profil">
+              {profileAvatar ? (
+                <img src={profileAvatar} alt="Foto Profil" className="login-avatar-preview" />
+              ) : (
+                <div className="login-avatar-placeholder">
+                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#A3ABB4" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                </div>
+              )}
+              <label className="login-avatar-badge" title="Pilih Foto Profil (Opsional)">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                   <circle cx="12" cy="13" r="4"/>
@@ -331,7 +339,9 @@ export default function App() {
               </label>
             </div>
             <h1 className="login-title">City News</h1>
-            <p className="login-subtitle">Klik ikon kamera di atas untuk memilih foto profil Anda</p>
+            <p className="login-subtitle">
+              {profileAvatar ? 'Foto profil terpilih ✓' : 'Klik ikon kamera untuk pasang foto profil (opsional)'}
+            </p>
           </div>
 
           <form onSubmit={handleLogin} className="login-form">
@@ -378,7 +388,7 @@ export default function App() {
   // ==========================================
   return (
     <div className="app-frame">
-      {/* 1. Mobile Status Bar dengan Jam Real-Time & 2D Flat Icons */}
+      {/* 1. Mobile Status Bar dengan Jam Real-Time */}
       <div className="status-bar">
         <span>{currentTime}</span>
         <div className="status-icons">
@@ -399,14 +409,20 @@ export default function App() {
         </div>
       </div>
 
-      {/* 2. Top Header Navigation dengan Foto Profil Pengguna */}
+      {/* 2. Top Header Navigation */}
       <header className="app-header">
         <div className="header-left">
           <button onClick={handleLogout} title="Kembali ke Login" className="header-back-btn">
             &larr;
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <img src={profileAvatar} alt={username} className="header-user-avatar" />
+            {profileAvatar ? (
+              <img src={profileAvatar} alt={username} className="header-user-avatar" />
+            ) : (
+              <div className="header-user-avatar header-user-initial">
+                {username ? username.charAt(0).toUpperCase() : 'U'}
+              </div>
+            )}
             <h2 className="header-title">City News</h2>
           </div>
         </div>
@@ -419,7 +435,7 @@ export default function App() {
       {/* Toast Notifikasi Ringan */}
       {toastMessage && <div className="toast-notification">{toastMessage}</div>}
 
-      {/* 3. Feed Area: 3 Kartu Memenuhi 1 Tampilan Layar Penuh, Scroll ke Bawah untuk Selanjutnya */}
+      {/* 3. Feed Area: 3 Kartu Memenuhi 1 Layar Penuh, Scroll ke Bawah untuk Selanjutnya */}
       <main className="feed-content">
         {feed.map((item) => (
           <article key={item.id} className="card-standard">
@@ -436,7 +452,6 @@ export default function App() {
 
             {/* Baris Interaksi: 2D Minimal Flat Vector Icons */}
             <div className="card-footer-stats">
-              {/* 2D Flat Share Icon */}
               <span
                 className="stat-item"
                 title="Salin Link Berita"
@@ -453,7 +468,6 @@ export default function App() {
               </span>
 
               <div className="stats-group">
-                {/* 2D Flat Eye Icon */}
                 <span className="stat-item" title="Jumlah pembaca">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
@@ -462,7 +476,6 @@ export default function App() {
                   <span>{item.views}</span>
                 </span>
 
-                {/* 2D Flat Comment Bubble Icon */}
                 <span
                   className="stat-item"
                   title="Lihat / Tulis Komentar"
@@ -475,7 +488,6 @@ export default function App() {
                   <span>{item.commentsList.length}</span>
                 </span>
 
-                {/* 2D Flat Heart / Like Icon */}
                 <span
                   className="stat-item"
                   title="Sukai Berita"
@@ -535,7 +547,7 @@ export default function App() {
         ))}
       </main>
 
-      {/* 4. Floating Action Button: POST NEWS (Fixed di Kanan Bawah saat di-scroll) */}
+      {/* 4. Floating Action Button: POST NEWS (SELALU TAMPAK DI KANAN BAWAH CONTAINER, TIDAK TERPENGARUH SCROLL) */}
       <button onClick={() => setIsPostModalOpen(true)} className="btn-post-news">
         POST NEWS
       </button>
