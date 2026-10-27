@@ -64,6 +64,8 @@ const initialNewsFeed = [
   },
 ];
 
+const ITEMS_PER_PAGE = 3; // Menampilkan tepat 3 orang / postingan per halaman tampilan
+
 export default function App() {
   // 1. STATE AUTHENTICATION
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -71,8 +73,13 @@ export default function App() {
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
 
-  // 2. STATE FEED & INTERACTIVE ACTIONS
+  // 2. STATE FEED & PAGINATION (3 item per halaman)
   const [feed, setFeed] = useState(initialNewsFeed);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const totalPages = Math.max(1, Math.ceil(feed.length / ITEMS_PER_PAGE));
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const currentFeed = feed.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   // Handle Login Submit
   const handleLogin = (e) => {
@@ -91,6 +98,7 @@ export default function App() {
     setUsername('');
     setPassword('');
     setLoginError('');
+    setCurrentPage(1);
   };
 
   // Handle Like Toggle pada Card Featured
@@ -123,6 +131,7 @@ export default function App() {
         text: textPrompt.trim(),
       };
       setFeed([newPost, ...feed]);
+      setCurrentPage(1); // Kembali ke halaman 1 agar postingan baru langsung terlihat
     }
   };
 
@@ -218,9 +227,9 @@ export default function App() {
         </button>
       </header>
 
-      {/* 3. Scrollable Feed Area */}
+      {/* 3. Feed Area: Menampilkan Tepat 3 Orang / Postingan per Halaman */}
       <main className="feed-content">
-        {feed.map((item) => {
+        {currentFeed.map((item) => {
           if (item.type === 'featured') {
             return (
               <article key={item.id} className="card-featured">
@@ -265,6 +274,29 @@ export default function App() {
             </article>
           );
         })}
+
+        {/* Pagination Nav (3 orang per tampilan) */}
+        {totalPages > 1 && (
+          <nav className="pagination-bar">
+            <button
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              className="pagination-btn"
+            >
+              &larr; Prev
+            </button>
+            <span className="pagination-info">
+              Halaman {currentPage} dari {totalPages}
+            </span>
+            <button
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              className="pagination-btn"
+            >
+              Next &rarr;
+            </button>
+          </nav>
+        )}
       </main>
 
       {/* 4. Floating Action Button: POST NEWS (Fixed at bottom right) */}
