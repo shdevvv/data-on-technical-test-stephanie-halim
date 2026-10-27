@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 
-// Mock data postingan City News awal
 const defaultNewsFeed = [
   {
     id: 1,
@@ -87,7 +86,6 @@ const defaultNewsFeed = [
 ];
 
 export default function App() {
-  // 1. STATE JAM REAL-TIME DINAMIS
   const [currentTime, setCurrentTime] = useState(() => {
     const now = new Date();
     return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -101,7 +99,6 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // 2. STATE AUTHENTICATION & PROFIL PENGGUNA (Tersimpan di localStorage)
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState(() => {
     try {
@@ -120,7 +117,6 @@ export default function App() {
   });
   const [loginError, setLoginError] = useState('');
 
-  // 3. STATE FEED NEWS (Tersimpan di localStorage)
   const [feed, setFeed] = useState(() => {
     try {
       const savedFeed = localStorage.getItem('city_news_feed');
@@ -138,23 +134,19 @@ export default function App() {
     }
   }, [feed]);
 
-  // 4. STATE KOMENTAR AKTIF & TOAST NOTIFIKASI
   const [activeCommentPostId, setActiveCommentPostId] = useState(null);
   const [commentInput, setCommentInput] = useState('');
   const [toastMessage, setToastMessage] = useState('');
 
-  // 5. STATE MODAL POST NEWS + UPLOAD GAMBAR
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [newPostText, setNewPostText] = useState('');
   const [newPostImagePreview, setNewPostImagePreview] = useState('');
 
-  // Helper menampilkan notifikasi toast
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(''), 3000);
   };
 
-  // Handle Upload Foto Profil sebelum Login
   const handleProfilePhotoUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -172,7 +164,6 @@ export default function App() {
     }
   };
 
-  // Handle Login Submit
   const handleLogin = (e) => {
     e.preventDefault();
     if (!username.trim() || !password.trim()) {
@@ -186,14 +177,12 @@ export default function App() {
     setIsLoggedIn(true);
   };
 
-  // Handle Logout
   const handleLogout = () => {
     setIsLoggedIn(false);
     setPassword('');
     setLoginError('');
   };
 
-  // Handle Like Toggle
   const handleToggleLike = (id) => {
     setFeed((prev) =>
       prev.map((item) => {
@@ -210,7 +199,6 @@ export default function App() {
     );
   };
 
-  // Handle Share (Salin Link ke Clipboard Pengguna)
   const handleShare = (post) => {
     const shareUrl = window.location.href;
     if (navigator.clipboard) {
@@ -224,7 +212,6 @@ export default function App() {
     }
   };
 
-  // Toggle Buka/Tutup Komentar
   const handleToggleComment = (postId) => {
     if (activeCommentPostId === postId) {
       setActiveCommentPostId(null);
@@ -237,7 +224,6 @@ export default function App() {
     }
   };
 
-  // Submit Komentar Baru
   const handleAddComment = (postId) => {
     if (!commentInput.trim()) return;
 
@@ -262,7 +248,6 @@ export default function App() {
     showToast('Komentar Anda berhasil diposting!');
   };
 
-  // Handle Pemilihan File Gambar Berita
   const handleImageFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -274,7 +259,6 @@ export default function App() {
     }
   };
 
-  // Submit Post News Baru: FOTO PROFIL PENULIS 100% MEMAKAI FOTO PROFIL DARI LOGIN PAGE
   const handleCreatePost = (e) => {
     e.preventDefault();
     if (!newPostText.trim()) {
@@ -288,7 +272,7 @@ export default function App() {
     const newPost = {
       id: Date.now(),
       author: currentAuthorName,
-      avatar: currentAuthorAvatar, // 100% PASTI pakai foto profil yang diupload di awal login page!
+      avatar: currentAuthorAvatar,
       thumb: newPostImagePreview || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=300&q=80',
       text: newPostText.trim(),
       views: 1,
@@ -304,13 +288,9 @@ export default function App() {
     showToast('Berita baru Anda berhasil diterbitkan!');
   };
 
-  // ==========================================
-  // VIEW 1: SCREEN LOGIN
-  // ==========================================
   if (!isLoggedIn) {
     return (
       <div className="app-frame">
-        {/* Status Bar dengan Jam Real-time */}
         <div className="status-bar">
           <span>{currentTime}</span>
           <div className="status-icons">
@@ -331,10 +311,8 @@ export default function App() {
           </div>
         </div>
 
-        {/* Login Form Container */}
         <div className="login-screen">
           <div className="login-brand">
-            {/* Upload Foto Profil */}
             <div className="login-avatar-upload-wrap">
               {profileAvatar ? (
                 <img src={profileAvatar} alt="Foto Profil" className="login-avatar-preview" />
@@ -404,12 +382,8 @@ export default function App() {
     );
   }
 
-  // ==========================================
-  // VIEW 2: SCREEN CITY NEWS
-  // ==========================================
   return (
     <div className="app-frame">
-      {/* 1. Mobile Status Bar dengan Jam Real-Time */}
       <div className="status-bar">
         <span>{currentTime}</span>
         <div className="status-icons">
@@ -430,7 +404,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* 2. Top Header Navigation */}
       <header className="app-header">
         <div className="header-left">
           <button onClick={handleLogout} title="Kembali ke Login" className="header-back-btn">
@@ -453,13 +426,10 @@ export default function App() {
         </button>
       </header>
 
-      {/* Toast Notifikasi Ringan */}
       {toastMessage && <div className="toast-notification">{toastMessage}</div>}
 
-      {/* 3. Feed Area: 3 Kartu Memenuhi 1 Layar Penuh, Scroll ke Bawah untuk Selanjutnya */}
       <main className="feed-content">
         {feed.map((item) => {
-          // Jika penulis postingan adalah user yang sedang login, gunakan foto profil yang diupload di login page!
           const isUserAuthor = item.author === username || (!username && item.author === 'Stephanie Halim');
           const effectiveAvatar = isUserAuthor && profileAvatar ? profileAvatar : item.avatar;
 
@@ -482,7 +452,6 @@ export default function App() {
                 <img src={item.thumb} alt="News Thumbnail" className="card-thumb" />
               </div>
 
-              {/* Baris Interaksi: 2D Minimal Flat Vector Icons */}
               <div className="card-footer-stats">
                 <span
                   className="stat-item"
@@ -540,7 +509,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Kotak Komentar Interaktif (Expandable) */}
               {activeCommentPostId === item.id && (
                 <div className="comment-box-area">
                   <div className="comment-list">
@@ -580,12 +548,10 @@ export default function App() {
         })}
       </main>
 
-      {/* 4. Floating Action Button: POST NEWS (Posisi dinaikkan, border-radius disesuaikan, ukuran diperbesar sedikit) */}
       <button onClick={() => setIsPostModalOpen(true)} className="btn-post-news">
         POST NEWS
       </button>
 
-      {/* 5. Modal Dialog: Form Post News dengan Upload Gambar */}
       {isPostModalOpen && (
         <div className="modal-overlay">
           <div className="modal-dialog">
@@ -600,7 +566,6 @@ export default function App() {
             </div>
 
             <form onSubmit={handleCreatePost} className="modal-form">
-              {/* Info Penulis yang memposting */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 0' }}>
                 {profileAvatar ? (
                   <img src={profileAvatar} alt={username} className="header-user-avatar" />
@@ -639,7 +604,6 @@ export default function App() {
                 />
               </div>
 
-              {/* Preview Gambar yang dipilih */}
               {newPostImagePreview && (
                 <div style={{ textAlign: 'center', marginTop: '6px' }}>
                   <img
