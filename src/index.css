@@ -181,6 +181,17 @@ body {
   object-fit: cover;
 }
 
+.author-avatar-initial {
+  background-color: #2A2E33;
+  color: var(--primary-cyan);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  border: 1.5px solid var(--primary-cyan);
+}
+
 .author-name {
   font-size: 13px;
   font-weight: 700;

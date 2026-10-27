@@ -101,14 +101,26 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // 2. STATE AUTHENTICATION & PROFIL PENGGUNA (Tanpa dummy foto sebelum di-upload)
+  // 2. STATE AUTHENTICATION & PROFIL PENGGUNA (Tersimpan di localStorage agar tidak reset)
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState(() => {
+    try {
+      return localStorage.getItem('city_news_username') || '';
+    } catch {
+      return '';
+    }
+  });
   const [password, setPassword] = useState('');
-  const [profileAvatar, setProfileAvatar] = useState(null); // Default null (tidak ada dummy foto)
+  const [profileAvatar, setProfileAvatar] = useState(() => {
+    try {
+      return localStorage.getItem('city_news_avatar') || null;
+    } catch {
+      return null;
+    }
+  });
   const [loginError, setLoginError] = useState('');
 
-  // 3. STATE FEED NEWS (Dengan localStorage Persistence)
+  // 3. STATE FEED NEWS (Tersimpan di localStorage)
   const [feed, setFeed] = useState(() => {
     try {
       const savedFeed = localStorage.getItem('city_news_feed');
@@ -148,7 +160,13 @@ export default function App() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setProfileAvatar(reader.result);
+        const base64Data = reader.result;
+        setProfileAvatar(base64Data);
+        try {
+          localStorage.setItem('city_news_avatar', base64Data);
+        } catch (err) {
+          console.warn(err);
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -161,6 +179,9 @@ export default function App() {
       setLoginError('Harap isi username dan password terlebih dahulu!');
       return;
     }
+    try {
+      localStorage.setItem('city_news_username', username.trim());
+    } catch (err) {}
     setLoginError('');
     setIsLoggedIn(true);
   };
@@ -168,7 +189,6 @@ export default function App() {
   // Handle Logout
   const handleLogout = () => {
     setIsLoggedIn(false);
-    setUsername('');
     setPassword('');
     setLoginError('');
   };
@@ -254,7 +274,7 @@ export default function App() {
     }
   };
 
-  // Submit Post News Baru
+  // Submit Post News Baru: FOTO PROFIL PENULIS 100% SESUAI DENGAN FOTO PROFIL USER YANG TERSIMPAN!
   const handleCreatePost = (e) => {
     e.preventDefault();
     if (!newPostText.trim()) {
@@ -262,12 +282,10 @@ export default function App() {
       return;
     }
 
-    const fallbackAvatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80';
-
     const newPost = {
       id: Date.now(),
       author: username || 'Stephanie Halim',
-      avatar: profileAvatar || fallbackAvatar,
+      avatar: profileAvatar || '', // Tepat menggunakan foto profil yang diupload user (tanpa fallback dummy acak)
       thumb: newPostImagePreview || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=300&q=80',
       text: newPostText.trim(),
       views: 1,
@@ -284,7 +302,7 @@ export default function App() {
   };
 
   // ==========================================
-  // VIEW 1: SCREEN LOGIN (TANPA DUMMY FOTO PROFILE)
+  // VIEW 1: SCREEN LOGIN
   // ==========================================
   if (!isLoggedIn) {
     return (
@@ -313,7 +331,7 @@ export default function App() {
         {/* Login Form Container */}
         <div className="login-screen">
           <div className="login-brand">
-            {/* Upload Foto Profil (Placeholder Bersih Tanpa Dummy Foto) */}
+            {/* Upload Foto Profil */}
             <div className="login-avatar-upload-wrap">
               {profileAvatar ? (
                 <img src={profileAvatar} alt="Foto Profil" className="login-avatar-preview" />
@@ -340,7 +358,7 @@ export default function App() {
             </div>
             <h1 className="login-title">City News</h1>
             <p className="login-subtitle">
-              {profileAvatar ? 'Foto profil terpilih ✓' : 'Klik ikon kamera untuk pasang foto profil (opsional)'}
+              {profileAvatar ? 'Foto profil tersimpan ✓' : 'Klik ikon kamera untuk pasang foto profil (opsional)'}
             </p>
           </div>
 
@@ -442,7 +460,14 @@ export default function App() {
             <div className="card-main-row">
               <div className="card-left-col">
                 <div className="card-author-row">
-                  <img src={item.avatar} alt={item.author} className="author-avatar" />
+                  {/* Foto profil kartu konsisten: jika ada foto tampilkan foto, jika tidak ada tampilkan inisial/placeholder */}
+                  {item.avatar ? (
+                    <img src={item.avatar} alt={item.author} className="author-avatar" />
+                  ) : (
+                    <div className="author-avatar author-avatar-initial">
+                      {item.author ? item.author.charAt(0).toUpperCase() : 'U'}
+                    </div>
+                  )}
                   <span className="author-name">{item.author}</span>
                 </div>
                 <p className="card-quote-text">{item.text}</p>
@@ -547,7 +572,7 @@ export default function App() {
         ))}
       </main>
 
-      {/* 4. Floating Action Button: POST NEWS (SELALU TAMPAK DI KANAN BAWAH CONTAINER, TIDAK TERPENGARUH SCROLL) */}
+      {/* 4. Floating Action Button: POST NEWS (SELALU TAMPAK DI KANAN BAWAH LAYAR PONSEL) */}
       <button onClick={() => setIsPostModalOpen(true)} className="btn-post-news">
         POST NEWS
       </button>
@@ -567,6 +592,18 @@ export default function App() {
             </div>
 
             <form onSubmit={handleCreatePost} className="modal-form">
+              {/* Info Penulis yang sedang membuat postingan */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0' }}>
+                {profileAvatar ? (
+                  <img src={profileAvatar} alt={username} className="header-user-avatar" />
+                ) : (
+                  <div className="header-user-avatar header-user-initial">
+                    {username ? username.charAt(0).toUpperCase() : 'U'}
+                  </div>
+                )}
+                <span style={{ fontSize: '12px', fontWeight: 'bold' }}>{username || 'Stephanie Halim'}</span>
+              </div>
+
               <div className="login-input-group">
                 <label className="login-label">Isi Berita / Kutipan</label>
                 <textarea
