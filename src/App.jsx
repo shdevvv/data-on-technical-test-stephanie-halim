@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
-// Mock data postingan City News dengan struktur seragam untuk semua orang
-const initialNewsFeed = [
+// Mock data postingan City News awal
+const defaultNewsFeed = [
   {
     id: 1,
     author: 'Andrée-Ann Labranche',
@@ -26,7 +26,7 @@ const initialNewsFeed = [
     likes: 24,
     isLiked: false,
     commentsList: [
-      { id: 201, author: 'Stephanie', text: 'Langsung gas tanpa ragu 🚀' },
+      { id: 201, author: 'Stephanie', text: 'Langsung gas tanpa ragu!' },
     ],
   },
   {
@@ -101,14 +101,30 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // 2. STATE AUTHENTICATION
+  // 2. STATE AUTHENTICATION & PROFIL PENGGUNA
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [profileAvatar, setProfileAvatar] = useState('https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80');
   const [loginError, setLoginError] = useState('');
 
-  // 3. STATE FEED NEWS (Semua data disimpan di state React memori browser)
-  const [feed, setFeed] = useState(initialNewsFeed);
+  // 3. STATE FEED NEWS (Dengan localStorage Persistence agar tidak hilang saat di-refresh)
+  const [feed, setFeed] = useState(() => {
+    try {
+      const savedFeed = localStorage.getItem('city_news_feed');
+      return savedFeed ? JSON.parse(savedFeed) : defaultNewsFeed;
+    } catch {
+      return defaultNewsFeed;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('city_news_feed', JSON.stringify(feed));
+    } catch (e) {
+      console.warn('LocalStorage error:', e);
+    }
+  }, [feed]);
 
   // 4. STATE KOMENTAR AKTIF & TOAST NOTIFIKASI
   const [activeCommentPostId, setActiveCommentPostId] = useState(null);
@@ -124,6 +140,18 @@ export default function App() {
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(''), 3000);
+  };
+
+  // Handle Upload Foto Profil sebelum Login
+  const handleProfilePhotoUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfileAvatar(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   // Handle Login Submit
@@ -162,17 +190,17 @@ export default function App() {
     );
   };
 
-  // Handle Share (Nyata: Menyalin Link ke Clipboard Pengguna)
+  // Handle Share (Salin Link ke Clipboard Pengguna)
   const handleShare = (post) => {
     const shareUrl = window.location.href;
     if (navigator.clipboard) {
       navigator.clipboard.writeText(shareUrl).then(() => {
-        showToast(`🔗 Link berita dari ${post.author} berhasil disalin ke clipboard!`);
+        showToast(`Link berita dari ${post.author} berhasil disalin ke clipboard!`);
       }).catch(() => {
-        showToast(`🔗 Link: ${shareUrl}`);
+        showToast(`Link: ${shareUrl}`);
       });
     } else {
-      showToast(`🔗 Link: ${shareUrl}`);
+      showToast(`Link: ${shareUrl}`);
     }
   };
 
@@ -183,14 +211,13 @@ export default function App() {
     } else {
       setActiveCommentPostId(postId);
       setCommentInput('');
-      // Naikkan views saat postingan dibuka/berinteraksi
       setFeed((prev) =>
         prev.map((item) => (item.id === postId ? { ...item, views: item.views + 1 } : item))
       );
     }
   };
 
-  // Submit Komentar Baru ke useState
+  // Submit Komentar Baru ke state
   const handleAddComment = (postId) => {
     if (!commentInput.trim()) return;
 
@@ -212,16 +239,16 @@ export default function App() {
     );
 
     setCommentInput('');
-    showToast('💬 Komentar Anda berhasil diposting!');
+    showToast('Komentar Anda berhasil diposting!');
   };
 
-  // Handle Pemilihan File Gambar dari Komputer/HP User
+  // Handle Pemilihan File Gambar Berita
   const handleImageFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setNewPostImagePreview(reader.result); // Simpan data URL gambar untuk ditampilkan
+        setNewPostImagePreview(reader.result);
       };
       reader.readAsDataURL(file);
     }
@@ -238,7 +265,7 @@ export default function App() {
     const newPost = {
       id: Date.now(),
       author: username || 'Stephanie Halim',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
+      avatar: profileAvatar,
       thumb: newPostImagePreview || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=300&q=80',
       text: newPostText.trim(),
       views: 1,
@@ -251,11 +278,11 @@ export default function App() {
     setNewPostText('');
     setNewPostImagePreview('');
     setIsPostModalOpen(false);
-    showToast('🎉 Berita baru Anda berhasil diterbitkan!');
+    showToast('Berita baru Anda berhasil diterbitkan!');
   };
 
   // ==========================================
-  // VIEW 1: SCREEN LOGIN
+  // VIEW 1: SCREEN LOGIN (LENGKAP DENGAN FITUR UPLOAD PROFIL)
   // ==========================================
   if (!isLoggedIn) {
     return (
@@ -264,18 +291,47 @@ export default function App() {
         <div className="status-bar">
           <span>{currentTime}</span>
           <div className="status-icons">
-            <span>📶</span>
-            <span>📡</span>
-            <span>🔋</span>
+            {/* 2D Signal Icon */}
+            <svg width="14" height="11" viewBox="0 0 14 11" fill="currentColor">
+              <rect x="0" y="8" width="2" height="3" rx="0.5"/>
+              <rect x="4" y="5.5" width="2" height="5.5" rx="0.5"/>
+              <rect x="8" y="3" width="2" height="8" rx="0.5"/>
+              <rect x="12" y="0" width="2" height="11" rx="0.5"/>
+            </svg>
+            {/* 2D Wifi Icon */}
+            <svg width="14" height="11" viewBox="0 0 16 12" fill="currentColor">
+              <path d="M8 9.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM4.1 6.8a5.5 5.5 0 0 1 7.8 0 .8.8 0 0 1-1.1 1.1 4 4 0 0 0-5.6 0 .8.8 0 0 1-1.1-1.1zm-3-3a9.8 9.8 0 0 1 13.8 0 .8.8 0 0 1-1.1 1.1 8.3 8.3 0 0 0-11.6 0 .8.8 0 0 1-1.1-1.1z"/>
+            </svg>
+            {/* 2D Battery Icon */}
+            <svg width="16" height="11" viewBox="0 0 20 12" fill="currentColor">
+              <rect x="1" y="1" width="16" height="10" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+              <rect x="3" y="3" width="10" height="6" rx="1"/>
+              <path d="M18 4.5v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
           </div>
         </div>
 
         {/* Login Form Container */}
         <div className="login-screen">
           <div className="login-brand">
-            <div className="login-brand-icon">CN</div>
+            {/* Upload Foto Profil Interaktif */}
+            <div className="login-avatar-upload-wrap">
+              <img src={profileAvatar} alt="Foto Profil" className="login-avatar-preview" />
+              <label className="login-avatar-badge" title="Ganti Foto Profil">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                  <circle cx="12" cy="13" r="4"/>
+                </svg>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleProfilePhotoUpload}
+                  style={{ display: 'none' }}
+                />
+              </label>
+            </div>
             <h1 className="login-title">City News</h1>
-            <p className="login-subtitle">Masuk untuk melihat update berita terkini</p>
+            <p className="login-subtitle">Klik ikon kamera di atas untuk memilih foto profil Anda</p>
           </div>
 
           <form onSubmit={handleLogin} className="login-form">
@@ -322,23 +378,37 @@ export default function App() {
   // ==========================================
   return (
     <div className="app-frame">
-      {/* 1. Mobile Status Bar dengan Jam Real-Time */}
+      {/* 1. Mobile Status Bar dengan Jam Real-Time & 2D Flat Icons */}
       <div className="status-bar">
         <span>{currentTime}</span>
         <div className="status-icons">
-          <span>📶</span>
-          <span>📡</span>
-          <span>🔋</span>
+          <svg width="14" height="11" viewBox="0 0 14 11" fill="currentColor">
+            <rect x="0" y="8" width="2" height="3" rx="0.5"/>
+            <rect x="4" y="5.5" width="2" height="5.5" rx="0.5"/>
+            <rect x="8" y="3" width="2" height="8" rx="0.5"/>
+            <rect x="12" y="0" width="2" height="11" rx="0.5"/>
+          </svg>
+          <svg width="14" height="11" viewBox="0 0 16 12" fill="currentColor">
+            <path d="M8 9.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM4.1 6.8a5.5 5.5 0 0 1 7.8 0 .8.8 0 0 1-1.1 1.1 4 4 0 0 0-5.6 0 .8.8 0 0 1-1.1-1.1zm-3-3a9.8 9.8 0 0 1 13.8 0 .8.8 0 0 1-1.1 1.1 8.3 8.3 0 0 0-11.6 0 .8.8 0 0 1-1.1-1.1z"/>
+          </svg>
+          <svg width="16" height="11" viewBox="0 0 20 12" fill="currentColor">
+            <rect x="1" y="1" width="16" height="10" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+            <rect x="3" y="3" width="10" height="6" rx="1"/>
+            <path d="M18 4.5v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
         </div>
       </div>
 
-      {/* 2. Top Header Navigation */}
+      {/* 2. Top Header Navigation dengan Foto Profil Pengguna */}
       <header className="app-header">
         <div className="header-left">
           <button onClick={handleLogout} title="Kembali ke Login" className="header-back-btn">
             &larr;
           </button>
-          <h2 className="header-title">City News</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <img src={profileAvatar} alt={username} className="header-user-avatar" />
+            <h2 className="header-title">City News</h2>
+          </div>
         </div>
 
         <button onClick={handleLogout} className="btn-logout">
@@ -349,7 +419,7 @@ export default function App() {
       {/* Toast Notifikasi Ringan */}
       {toastMessage && <div className="toast-notification">{toastMessage}</div>}
 
-      {/* 3. Feed Area: Semua Kartu Seragam (3 Kartu Pas di Layar Pertama, Scroll ke Bawah untuk Selanjutnya) */}
+      {/* 3. Feed Area: 3 Kartu Memenuhi 1 Tampilan Layar Penuh, Scroll ke Bawah untuk Selanjutnya */}
       <main className="feed-content">
         {feed.map((item) => (
           <article key={item.id} className="card-standard">
@@ -364,42 +434,69 @@ export default function App() {
               <img src={item.thumb} alt="News Thumbnail" className="card-thumb" />
             </div>
 
-            {/* Baris Interaksi: Share, Views (Mata), Komentar, & Like */}
+            {/* Baris Interaksi: 2D Minimal Flat Vector Icons */}
             <div className="card-footer-stats">
+              {/* 2D Flat Share Icon */}
               <span
                 className="stat-item"
                 title="Salin Link Berita"
                 onClick={() => handleShare(item)}
               >
-                🔗 Share
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="18" cy="5" r="3"/>
+                  <circle cx="6" cy="12" r="3"/>
+                  <circle cx="18" cy="19" r="3"/>
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                </svg>
+                <span>Share</span>
               </span>
 
               <div className="stats-group">
+                {/* 2D Flat Eye Icon */}
                 <span className="stat-item" title="Jumlah pembaca">
-                  👁️ {item.views}
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  <span>{item.views}</span>
                 </span>
 
+                {/* 2D Flat Comment Bubble Icon */}
                 <span
                   className="stat-item"
                   title="Lihat / Tulis Komentar"
                   onClick={() => handleToggleComment(item.id)}
                   style={{ color: activeCommentPostId === item.id ? '#65EFFF' : 'inherit', fontWeight: 'bold' }}
                 >
-                  💬 {item.commentsList.length}
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                  <span>{item.commentsList.length}</span>
                 </span>
 
+                {/* 2D Flat Heart / Like Icon */}
                 <span
                   className="stat-item"
                   title="Sukai Berita"
                   onClick={() => handleToggleLike(item.id)}
                   style={{ color: item.isLiked ? '#ff4757' : 'inherit' }}
                 >
-                  {item.isLiked ? '❤️' : '🤍'} {item.likes}
+                  {item.isLiked ? (
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="#ff4757" stroke="#ff4757" strokeWidth="2">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                  ) : (
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                  )}
+                  <span>{item.likes}</span>
                 </span>
               </div>
             </div>
 
-            {/* Kotak Komentar Interaktif (Expandable saat icon komentar diklik) */}
+            {/* Kotak Komentar Interaktif (Expandable) */}
             {activeCommentPostId === item.id && (
               <div className="comment-box-area">
                 <div className="comment-list">
