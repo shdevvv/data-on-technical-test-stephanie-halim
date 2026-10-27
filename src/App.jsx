@@ -101,7 +101,7 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // 2. STATE AUTHENTICATION & PROFIL PENGGUNA (Tersimpan di localStorage agar tidak reset)
+  // 2. STATE AUTHENTICATION & PROFIL PENGGUNA (Tersimpan di localStorage)
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState(() => {
     try {
@@ -274,7 +274,7 @@ export default function App() {
     }
   };
 
-  // Submit Post News Baru: FOTO PROFIL PENULIS 100% SESUAI DENGAN FOTO PROFIL USER YANG TERSIMPAN!
+  // Submit Post News Baru: FOTO PROFIL PENULIS 100% MEMAKAI FOTO PROFIL DARI LOGIN PAGE
   const handleCreatePost = (e) => {
     e.preventDefault();
     if (!newPostText.trim()) {
@@ -282,10 +282,13 @@ export default function App() {
       return;
     }
 
+    const currentAuthorName = username.trim() || 'Stephanie Halim';
+    const currentAuthorAvatar = profileAvatar || localStorage.getItem('city_news_avatar') || '';
+
     const newPost = {
       id: Date.now(),
-      author: username || 'Stephanie Halim',
-      avatar: profileAvatar || '', // Tepat menggunakan foto profil yang diupload user (tanpa fallback dummy acak)
+      author: currentAuthorName,
+      avatar: currentAuthorAvatar, // 100% PASTI pakai foto profil yang diupload di awal login page!
       thumb: newPostImagePreview || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=300&q=80',
       text: newPostText.trim(),
       views: 1,
@@ -337,14 +340,14 @@ export default function App() {
                 <img src={profileAvatar} alt="Foto Profil" className="login-avatar-preview" />
               ) : (
                 <div className="login-avatar-placeholder">
-                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#A3ABB4" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#A3ABB4" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                     <circle cx="12" cy="7" r="4"/>
                   </svg>
                 </div>
               )}
               <label className="login-avatar-badge" title="Pilih Foto Profil (Opsional)">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                   <circle cx="12" cy="13" r="4"/>
                 </svg>
@@ -455,124 +458,129 @@ export default function App() {
 
       {/* 3. Feed Area: 3 Kartu Memenuhi 1 Layar Penuh, Scroll ke Bawah untuk Selanjutnya */}
       <main className="feed-content">
-        {feed.map((item) => (
-          <article key={item.id} className="card-standard">
-            <div className="card-main-row">
-              <div className="card-left-col">
-                <div className="card-author-row">
-                  {/* Foto profil kartu konsisten: jika ada foto tampilkan foto, jika tidak ada tampilkan inisial/placeholder */}
-                  {item.avatar ? (
-                    <img src={item.avatar} alt={item.author} className="author-avatar" />
-                  ) : (
-                    <div className="author-avatar author-avatar-initial">
-                      {item.author ? item.author.charAt(0).toUpperCase() : 'U'}
-                    </div>
-                  )}
-                  <span className="author-name">{item.author}</span>
-                </div>
-                <p className="card-quote-text">{item.text}</p>
-              </div>
-              <img src={item.thumb} alt="News Thumbnail" className="card-thumb" />
-            </div>
+        {feed.map((item) => {
+          // Jika penulis postingan adalah user yang sedang login, gunakan foto profil yang diupload di login page!
+          const isUserAuthor = item.author === username || (!username && item.author === 'Stephanie Halim');
+          const effectiveAvatar = isUserAuthor && profileAvatar ? profileAvatar : item.avatar;
 
-            {/* Baris Interaksi: 2D Minimal Flat Vector Icons */}
-            <div className="card-footer-stats">
-              <span
-                className="stat-item"
-                title="Salin Link Berita"
-                onClick={() => handleShare(item)}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="18" cy="5" r="3"/>
-                  <circle cx="6" cy="12" r="3"/>
-                  <circle cx="18" cy="19" r="3"/>
-                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-                </svg>
-                <span>Share</span>
-              </span>
-
-              <div className="stats-group">
-                <span className="stat-item" title="Jumlah pembaca">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                    <circle cx="12" cy="12" r="3"/>
-                  </svg>
-                  <span>{item.views}</span>
-                </span>
-
-                <span
-                  className="stat-item"
-                  title="Lihat / Tulis Komentar"
-                  onClick={() => handleToggleComment(item.id)}
-                  style={{ color: activeCommentPostId === item.id ? '#65EFFF' : 'inherit', fontWeight: 'bold' }}
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                  </svg>
-                  <span>{item.commentsList.length}</span>
-                </span>
-
-                <span
-                  className="stat-item"
-                  title="Sukai Berita"
-                  onClick={() => handleToggleLike(item.id)}
-                  style={{ color: item.isLiked ? '#ff4757' : 'inherit' }}
-                >
-                  {item.isLiked ? (
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="#ff4757" stroke="#ff4757" strokeWidth="2">
-                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                    </svg>
-                  ) : (
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                    </svg>
-                  )}
-                  <span>{item.likes}</span>
-                </span>
-              </div>
-            </div>
-
-            {/* Kotak Komentar Interaktif (Expandable) */}
-            {activeCommentPostId === item.id && (
-              <div className="comment-box-area">
-                <div className="comment-list">
-                  {item.commentsList.length === 0 ? (
-                    <p className="comment-empty-text">Belum ada komentar. Jadilah yang pertama berkomentar!</p>
-                  ) : (
-                    item.commentsList.map((c) => (
-                      <div key={c.id} className="comment-item">
-                        <span className="comment-author">{c.author}:</span> {c.text}
+          return (
+            <article key={item.id} className="card-standard">
+              <div className="card-main-row">
+                <div className="card-left-col">
+                  <div className="card-author-row">
+                    {effectiveAvatar ? (
+                      <img src={effectiveAvatar} alt={item.author} className="author-avatar" />
+                    ) : (
+                      <div className="author-avatar author-avatar-initial">
+                        {item.author ? item.author.charAt(0).toUpperCase() : 'U'}
                       </div>
-                    ))
-                  )}
+                    )}
+                    <span className="author-name">{item.author}</span>
+                  </div>
+                  <p className="card-quote-text">{item.text}</p>
                 </div>
+                <img src={item.thumb} alt="News Thumbnail" className="card-thumb" />
+              </div>
 
-                <div className="comment-input-row">
-                  <input
-                    type="text"
-                    value={commentInput}
-                    onChange={(e) => setCommentInput(e.target.value)}
-                    placeholder="Tulis komentar Anda..."
-                    className="comment-input-field"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleAddComment(item.id);
-                    }}
-                  />
-                  <button
-                    onClick={() => handleAddComment(item.id)}
-                    className="comment-submit-btn"
+              {/* Baris Interaksi: 2D Minimal Flat Vector Icons */}
+              <div className="card-footer-stats">
+                <span
+                  className="stat-item"
+                  title="Salin Link Berita"
+                  onClick={() => handleShare(item)}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="18" cy="5" r="3"/>
+                    <circle cx="6" cy="12" r="3"/>
+                    <circle cx="18" cy="19" r="3"/>
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                  </svg>
+                  <span>Share</span>
+                </span>
+
+                <div className="stats-group">
+                  <span className="stat-item" title="Jumlah pembaca">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    <span>{item.views}</span>
+                  </span>
+
+                  <span
+                    className="stat-item"
+                    title="Lihat / Tulis Komentar"
+                    onClick={() => handleToggleComment(item.id)}
+                    style={{ color: activeCommentPostId === item.id ? '#65EFFF' : 'inherit', fontWeight: 'bold' }}
                   >
-                    Kirim
-                  </button>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    <span>{item.commentsList.length}</span>
+                  </span>
+
+                  <span
+                    className="stat-item"
+                    title="Sukai Berita"
+                    onClick={() => handleToggleLike(item.id)}
+                    style={{ color: item.isLiked ? '#ff4757' : 'inherit' }}
+                  >
+                    {item.isLiked ? (
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="#ff4757" stroke="#ff4757" strokeWidth="2">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                      </svg>
+                    ) : (
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                      </svg>
+                    )}
+                    <span>{item.likes}</span>
+                  </span>
                 </div>
               </div>
-            )}
-          </article>
-        ))}
+
+              {/* Kotak Komentar Interaktif (Expandable) */}
+              {activeCommentPostId === item.id && (
+                <div className="comment-box-area">
+                  <div className="comment-list">
+                    {item.commentsList.length === 0 ? (
+                      <p className="comment-empty-text">Belum ada komentar. Jadilah yang pertama berkomentar!</p>
+                    ) : (
+                      item.commentsList.map((c) => (
+                        <div key={c.id} className="comment-item">
+                          <span className="comment-author">{c.author}:</span> {c.text}
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="comment-input-row">
+                    <input
+                      type="text"
+                      value={commentInput}
+                      onChange={(e) => setCommentInput(e.target.value)}
+                      placeholder="Tulis komentar Anda..."
+                      className="comment-input-field"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleAddComment(item.id);
+                      }}
+                    />
+                    <button
+                      onClick={() => handleAddComment(item.id)}
+                      className="comment-submit-btn"
+                    >
+                      Kirim
+                    </button>
+                  </div>
+                </div>
+              )}
+            </article>
+          );
+        })}
       </main>
 
-      {/* 4. Floating Action Button: POST NEWS (SELALU TAMPAK DI KANAN BAWAH LAYAR PONSEL) */}
+      {/* 4. Floating Action Button: POST NEWS (Posisi dinaikkan, border-radius disesuaikan, ukuran diperbesar sedikit) */}
       <button onClick={() => setIsPostModalOpen(true)} className="btn-post-news">
         POST NEWS
       </button>
@@ -592,8 +600,8 @@ export default function App() {
             </div>
 
             <form onSubmit={handleCreatePost} className="modal-form">
-              {/* Info Penulis yang sedang membuat postingan */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0' }}>
+              {/* Info Penulis yang memposting */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 0' }}>
                 {profileAvatar ? (
                   <img src={profileAvatar} alt={username} className="header-user-avatar" />
                 ) : (
@@ -601,7 +609,10 @@ export default function App() {
                     {username ? username.charAt(0).toUpperCase() : 'U'}
                   </div>
                 )}
-                <span style={{ fontSize: '12px', fontWeight: 'bold' }}>{username || 'Stephanie Halim'}</span>
+                <div>
+                  <span style={{ fontSize: '13px', fontWeight: 'bold', display: 'block' }}>{username || 'Stephanie Halim'}</span>
+                  <span style={{ fontSize: '10px', color: '#64748b' }}>Foto profil Anda akan tampil di postingan</span>
+                </div>
               </div>
 
               <div className="login-input-group">
